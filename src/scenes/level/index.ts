@@ -4,21 +4,25 @@ import player from '../../assets/player.png';
 import zombie from '../../assets/zombie.png';
 import deadZombie from '../../assets/deadzombie.png';
 import airdrop from '../../assets/airdrop.png';
+import fire from '../../assets/fire.png';
 
 export interface Level1 extends Scene {
   keyLeft: any;
   keyRight: any;
   keyEsc: any;
   keyUp: any;
+  keyDown: any;
   zombies: any;
   stars: any;
   lowerEdge: any;
   upperEdge: any;
   isBulletBlocked: boolean;
+  isAirDropCollected: boolean;
   graphics: any;
   path: any;
   follower: any;
   aird: any;
+  megaWeapon: any;
 }
 
 const ZOMBIE_SPAWN_DELAY = 500;
@@ -27,17 +31,18 @@ const BULLET_DELAY = 400;
 const building = {
   x: window.innerWidth * 0.25,
   y: window.innerHeight * 0.4,
-  width: window.innerWidth * 0.3,
+  width: window.innerWidth * 0.2,
   height: window.innerHeight * 0.6,
-  windows: 5,
-  floors: 7,
-  gap: 25,
+  windows: 4,
+  floors: 6,
+  gap: 40,
 };
 
 export class Level1 extends Scene {
   constructor() {
     super('level-1-scene');
     this.isBulletBlocked = false;
+    this.isAirDropCollected = false;
   }
 
   preload(): void {
@@ -46,6 +51,7 @@ export class Level1 extends Scene {
     this.load.image('zombie', zombie);
     this.load.image('deadZombie', deadZombie);
     this.load.image('airdrop', airdrop);
+    this.load.image('fire', fire);
   }
 
   destroyStar(star: any, zombie: any): void {
@@ -69,31 +75,60 @@ export class Level1 extends Scene {
     setTimeout(() => (this.isBulletBlocked = false), BULLET_DELAY);
   }
 
-  airdropCollected(): void {
-    console.log('collected');
+  airdropCollected(player: any, airdrop: any): void {
+    if (!this.isAirDropCollected) {
+      airdrop.visible = false;
+      this.isAirDropCollected = true;
+      setTimeout(() => {
+        this.isAirDropCollected = false;
+        airdrop.visible = true;
+      }, 5000);
+      console.log('collected');
+    }
   }
 
   create(): void {
     const graphics = this.add.graphics();
     /* path of air drop */
-    // this.graphics = this.add.graphics();
-    this.path = new Phaser.Curves.Path(window.innerWidth, 0);
-    this.path.lineTo(-150, window.innerHeight * 0.2);
-    graphics.lineStyle(2, 0xffffff, 1);
-    this.path.draw(graphics);
-    this.aird = this.add.follower(this.path, window.innerWidth, 40, 'airdrop');
-    this.physics.world.enable(this.aird);
-    this.aird.body.setAllowGravity(false); //.setAllowGravity(false);
-    this.aird.startFollow({
+    const path = new Phaser.Curves.Path(window.innerWidth, 0);
+    path.lineTo(-150, window.innerHeight * 0.2);
+    //    graphics.lineStyle(2, 0xffffff, 1);
+    //    this.path.draw(graphics);
+    const airDrop: any = this.add.follower(path, window.innerWidth, 40, 'airdrop');
+    this.physics.world.enable(airDrop);
+    airDrop.body.setAllowGravity(false);
+    airDrop.startFollow({
       duration: 5000,
+      repeatDelay: 10000,
       yoyo: false,
-      repeat: 0,
+      repeat: -1,
     });
 
     /**/
     graphics.fillGradientStyle(0x351f1b, 0x351f1b, 0xff7847, 0xff7847, 1);
     graphics.fillRect(0, window.innerHeight * 0.33, window.innerWidth, window.innerHeight * 0.33);
 
+    graphics.fillStyle(0x281714);
+    for (let buildings = 1; buildings <= 30; buildings++) {
+      const height = Math.random() * (window.innerHeight * 0.45);
+      graphics.fillRect(
+        (buildings - 1) * (window.innerWidth / 30),
+        window.innerHeight * 0.66 - height,
+        window.innerWidth / 30,
+        window.innerHeight,
+      );
+    }
+
+    graphics.fillStyle(0x252329);
+    for (let buildings = 1; buildings <= 5; buildings++) {
+      const height = window.innerHeight - Math.random() * window.innerHeight * 0.7;
+      graphics.fillRect(
+        (buildings - 1) * (window.innerWidth / 5 + window.innerWidth * 0.02),
+        height < window.innerHeight * 0.6 ? height : window.innerHeight * 0.6,
+        window.innerWidth / 5,
+        window.innerHeight,
+      );
+    }
     graphics.fillStyle(0x002b49);
     graphics.fillRect(building.x, building.y, building.width, building.height);
     const windowWidth = (building.width - building.gap * (building.windows + 1)) / building.windows;
@@ -102,7 +137,7 @@ export class Level1 extends Scene {
 
     for (let i = 1; i <= building.floors; i++) {
       for (let e = 1; e <= building.windows; e++) {
-        graphics.fillStyle(0xffff00, 0.3);
+        graphics.fillStyle(0x004777);
         const windowX = building.x + e * building.gap + (e - 1) * windowWidth;
         if (i === 1) console.log(windowX);
 
@@ -132,17 +167,28 @@ export class Level1 extends Scene {
     this.physics.add.overlap(this.lowerEdge, this.zombies, this.destroyZombie, null!, this);
     this.physics.add.overlap(this.upperEdge, this.zombies, this.gameOver, null!, this);
     const player = this.physics.add.sprite(
-      window.innerWidth * 0.4,
+      building.x + building.width / 2,
       window.innerHeight * 0.4 - 150,
       'player',
     );
     this.physics.add.collider(player, this.upperEdge);
-    this.physics.add.overlap(player, this.aird, this.airdropCollected, null!, this);
+    this.physics.add.overlap(player, airDrop, this.airdropCollected, null!, this);
 
     this.keyLeft = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
     this.keyUp = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
     this.keyRight = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
+    this.keyDown = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
     this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+
+    this.keyDown.on('down', () => {
+      if (this.isAirDropCollected) {
+        this.megaWeapon = this.physics.add
+          .sprite(building.x - 20, building.y, 'fire')
+          .setOrigin(0, 0);
+        this.megaWeapon.scaleX = 1.2;
+        this.physics.add.overlap(this.megaWeapon, this.zombies, this.destroyZombie, null!, this);
+      }
+    });
 
     this.keyLeft.on('down', () => {
       player.setFlipX(true);
