@@ -3,16 +3,22 @@ import star from '../../assets/star.png';
 import player from '../../assets/player.png';
 import zombie from '../../assets/zombie.png';
 import deadZombie from '../../assets/deadzombie.png';
+import airdrop from '../../assets/airdrop.png';
 
 export interface Level1 extends Scene {
   keyLeft: any;
   keyRight: any;
   keyEsc: any;
+  keyUp: any;
   zombies: any;
   stars: any;
   lowerEdge: any;
   upperEdge: any;
   isBulletBlocked: boolean;
+  graphics: any;
+  path: any;
+  follower: any;
+  aird: any;
 }
 
 const ZOMBIE_SPAWN_DELAY = 500;
@@ -39,6 +45,7 @@ export class Level1 extends Scene {
     this.load.image('star', star);
     this.load.image('zombie', zombie);
     this.load.image('deadZombie', deadZombie);
+    this.load.image('airdrop', airdrop);
   }
 
   destroyStar(star: any, zombie: any): void {
@@ -61,8 +68,29 @@ export class Level1 extends Scene {
     this.isBulletBlocked = true;
     setTimeout(() => (this.isBulletBlocked = false), BULLET_DELAY);
   }
+
+  airdropCollected(): void {
+    console.log('collected');
+  }
+
   create(): void {
     const graphics = this.add.graphics();
+    /* path of air drop */
+    // this.graphics = this.add.graphics();
+    this.path = new Phaser.Curves.Path(window.innerWidth, 0);
+    this.path.lineTo(-150, window.innerHeight * 0.2);
+    graphics.lineStyle(2, 0xffffff, 1);
+    this.path.draw(graphics);
+    this.aird = this.add.follower(this.path, window.innerWidth, 40, 'airdrop');
+    this.physics.world.enable(this.aird);
+    this.aird.body.setAllowGravity(false); //.setAllowGravity(false);
+    this.aird.startFollow({
+      duration: 5000,
+      yoyo: false,
+      repeat: 0,
+    });
+
+    /**/
     graphics.fillGradientStyle(0x351f1b, 0x351f1b, 0xff7847, 0xff7847, 1);
     graphics.fillRect(0, window.innerHeight * 0.33, window.innerWidth, window.innerHeight * 0.33);
 
@@ -93,7 +121,7 @@ export class Level1 extends Scene {
     this.lowerEdge.visible = false;
     this.lowerEdge.body.setAllowGravity(false);
 
-    this.upperEdge = this.physics.add.sprite(building.x, building.y, zombie);
+    this.upperEdge = this.physics.add.sprite(building.x, building.y, zombie).setImmovable();
     this.upperEdge.scaleX = 50;
     this.upperEdge.scaleY = 0.1;
     this.upperEdge.visible = false;
@@ -103,27 +131,35 @@ export class Level1 extends Scene {
     this.physics.add.overlap(this.stars, this.zombies, this.destroyStar, null!, this);
     this.physics.add.overlap(this.lowerEdge, this.zombies, this.destroyZombie, null!, this);
     this.physics.add.overlap(this.upperEdge, this.zombies, this.gameOver, null!, this);
-    const player = this.physics.add
-      .sprite(window.innerWidth * 0.4, window.innerHeight * 0.4 - 50, 'player')
-      .setImmovable(true);
-    player.body.setAllowGravity(false);
+    const player = this.physics.add.sprite(
+      window.innerWidth * 0.4,
+      window.innerHeight * 0.4 - 150,
+      'player',
+    );
+    this.physics.add.collider(player, this.upperEdge);
+    this.physics.add.overlap(player, this.aird, this.airdropCollected, null!, this);
+
     this.keyLeft = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
+    this.keyUp = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
     this.keyRight = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
     this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
     this.keyLeft.on('down', () => {
       player.setFlipX(true);
-      if (!this.isBulletBlocked) {
+      if (!this.isBulletBlocked && player.body.velocity.y === 0) {
         this.blockBullet();
         this.stars.create(building.x, 290, 'star');
       }
     });
     this.keyRight.on('down', () => {
       player.setFlipX(false);
-      if (!this.isBulletBlocked) {
+      if (!this.isBulletBlocked && player.body.velocity.y === 0) {
         this.blockBullet();
         this.stars.create(building.x + building.width, 290, 'star');
       }
+    });
+    this.keyUp.on('down', () => {
+      if (player.body.touching.down) player.setVelocityY(-400);
     });
     this.keyEsc.on('down', () => {
       console.log('esc');
@@ -134,8 +170,6 @@ export class Level1 extends Scene {
         side ? building.x : building.x + building.width,
         800,
       );
-      createdZombie.body.onWorldBounds = true;
-      createdZombie.custom = this.zombies;
       createdZombie.body.setAllowGravity(false);
       createdZombie.setFlipX(side ? false : true);
     }, ZOMBIE_SPAWN_DELAY);
