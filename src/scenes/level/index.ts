@@ -83,7 +83,6 @@ export class Level1 extends Scene {
         this.isAirDropCollected = false;
         airdrop.visible = true;
       }, 5000);
-      console.log('collected');
     }
   }
 
@@ -133,14 +132,11 @@ export class Level1 extends Scene {
     graphics.fillRect(building.x, building.y, building.width, building.height);
     const windowWidth = (building.width - building.gap * (building.windows + 1)) / building.windows;
     const windowHeight = (building.height - building.gap * (building.floors + 1)) / building.floors;
-    console.log(building.width, windowWidth, building.windows, building.gap);
 
     for (let i = 1; i <= building.floors; i++) {
       for (let e = 1; e <= building.windows; e++) {
         graphics.fillStyle(0x004777);
         const windowX = building.x + e * building.gap + (e - 1) * windowWidth;
-        if (i === 1) console.log(windowX);
-
         const windowY = building.y + i * building.gap + (i - 1) * windowHeight;
         graphics.fillRect(windowX, windowY, windowWidth, windowHeight);
       }
@@ -185,7 +181,7 @@ export class Level1 extends Scene {
         this.megaWeapon = this.physics.add
           .sprite(building.x - 20, building.y, 'fire')
           .setOrigin(0, 0);
-        this.megaWeapon.scaleX = 1.2;
+        this.megaWeapon.scaleX = 1.45;
         this.physics.add.overlap(this.megaWeapon, this.zombies, this.destroyZombie, null!, this);
       }
     });
