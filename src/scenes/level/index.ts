@@ -33,9 +33,9 @@ const building = {
   y: window.innerHeight * 0.4,
   width: window.innerWidth * 0.2,
   height: window.innerHeight * 0.6,
-  windows: 4,
-  floors: 6,
-  gap: 40,
+  windows: 8,
+  floors: 10,
+  gap: 15,
 };
 
 export class Level1 extends Scene {
@@ -118,15 +118,25 @@ export class Level1 extends Scene {
       );
     }
 
-    graphics.fillStyle(0x252329);
     for (let buildings = 1; buildings <= 5; buildings++) {
-      const height = window.innerHeight - Math.random() * window.innerHeight * 0.7;
-      graphics.fillRect(
-        (buildings - 1) * (window.innerWidth / 5 + window.innerWidth * 0.02),
-        height < window.innerHeight * 0.6 ? height : window.innerHeight * 0.6,
-        window.innerWidth / 5,
-        window.innerHeight,
-      );
+      graphics.fillStyle(0x252329);
+      const buildingHeight = window.innerHeight - Math.random() * window.innerHeight * 0.7;
+      const buildingWidth = window.innerWidth / 5;
+      const buildingX = (buildings - 1) * (buildingWidth + window.innerWidth * 0.02);
+      const buildingY =
+        buildingHeight < window.innerHeight * 0.6 ? buildingHeight : window.innerHeight * 0.6;
+      graphics.fillRect(buildingX, buildingY, buildingWidth, window.innerHeight);
+      const windowWidth = (buildingWidth - 10 * (10 + 1)) / 10;
+      const windowHeight = (buildingHeight - 10 * (15 + 1)) / 15;
+
+      for (let i = 1; i <= buildingHeight; i++) {
+        for (let e = 1; e <= 10; e++) {
+          graphics.fillStyle(0x231d2e);
+          const windowX = buildingX + e * 10 + (e - 1) * windowWidth;
+          const windowY = buildingY + i * 12 + (i - 1) * windowHeight;
+          graphics.fillRect(windowX, windowY, windowWidth, windowHeight);
+        }
+      }
     }
     graphics.fillStyle(0x002b49);
     graphics.fillRect(building.x, building.y, building.width, building.height);
